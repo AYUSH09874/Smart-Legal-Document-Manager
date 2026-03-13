@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LexVault — Smart Legal Document Manager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Instrument+Sans:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="/static/css/style.css"/>
+</head>
+<body>
+
+<!-- ── Header ─────────────────────────────────── -->
+<header class="site-header">
+  <a class="logo" href="#">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+        <polyline points="14 2 14 8 20 8"/>
+        <line x1="16" y1="13" x2="8" y2="13"/>
+        <line x1="16" y1="17" x2="8" y2="17"/>
+        <polyline points="10 9 9 9 8 9"/>
+      </svg>
+    </div>
+    <span class="logo-text">Lex<span>Vault</span></span>
+  </a>
+
+  <nav class="header-nav">
+    <button class="nav-btn active" data-view="documents" onclick="switchView('documents')">Documents</button>
+    <button class="nav-btn" data-view="notifications" onclick="switchView('notifications')">Notifications</button>
+  </nav>
+
+  <div class="header-right">
+    <div class="author-wrap">
+      <input id="global-author" class="author-input" placeholder="Your name…" value="Advocate Singh"/>
+    </div>
+    <div class="status-pill">
+      <span class="status-dot"></span>
+      Live
+    </div>
+  </div>
+</header>
+
+<!-- ── App Layout ──────────────────────────────── -->
+<main class="app-layout">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-head">
+      <h2>Documents</h2>
+      <button class="btn-new" onclick="openNewDocModal()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New
+      </button>
+    </div>
+    <div class="search-wrap">
+      <div class="search-box">
+        <input id="doc-search" class="search-input" placeholder="Search…" oninput="filterDocs()"/>
+      </div>
+    </div>
+    <div id="doc-list" class="doc-list">
+      <div class="loading-pulse">Loading documents…</div>
+    </div>
+  </aside>
+
+  <!-- DOC PANEL -->
+  <section class="doc-panel" id="doc-panel">
+
+    <!-- Empty state -->
+    <div class="empty-state" id="empty-state">
+      <div class="empty-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+      </div>
+      <p>No document selected</p>
+      <small>Choose a document from the sidebar or create a new one</small>
+    </div>
+
+    <!-- Document detail -->
+    <div class="doc-detail hidden" id="doc-detail">
+
+      <!-- Title bar -->
+      <div class="doc-title-bar">
+        <div class="doc-title-wrap">
+          <h1 id="doc-title-display" class="doc-title-display"></h1>
+          <button class="icon-btn" onclick="openEditTitleModal()" title="Edit title">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+        </div>
+        <div class="doc-meta">
+          <span id="doc-version-badge" class="version-badge"></span>
+          <span id="doc-date" class="doc-date"></span>
+        </div>
+      </div>
+
+      <!-- Tabs -->
+      <div class="tab-bar">
+        <button class="tab active" data-tab="view" onclick="switchTab('view')">View</button>
+        <button class="tab" data-tab="edit" onclick="switchTab('edit')">Edit / New Version</button>
+        <button class="tab" data-tab="history" onclick="switchTab('history')">History</button>
+        <button class="tab" data-tab="diff" onclick="switchTab('diff')">Compare</button>
+      </div>
+
+      <!-- TAB: View -->
+      <div class="tab-content active" id="tab-view">
+        <div id="doc-content-display" class="doc-content-display"></div>
+      </div>
+
+      <!-- TAB: Edit -->
+      <div class="tab-content hidden" id="tab-edit">
+        <div class="form-group">
+          <label>Content <span class="label-hint">— saving creates a new version, nothing is overwritten</span></label>
+          <textarea id="edit-content" class="legal-textarea" placeholder="Type or paste the document content here…"></textarea>
+        </div>
+        <div class="form-group">
+          <label>Change Summary <span class="label-hint">— optional note</span></label>
+          <input id="edit-summary" class="form-input" placeholder="e.g. Amended liability clause in section 4.2"/>
+        </div>
+        <div class="form-actions">
+          <button class="btn-primary" onclick="saveNewVersion()">Save New Version</button>
+          <button class="btn-danger-outline" onclick="confirmDeleteDoc()">Delete Document</button>
+        </div>
+      </div>
+
+      <!-- TAB: History -->
+      <div class="tab-content hidden" id="tab-history">
+        <div id="version-list" class="version-list"></div>
+      </div>
+
+      <!-- TAB: Compare -->
+      <div class="tab-content hidden" id="tab-diff">
+        <div class="diff-controls">
+          <div class="diff-select-wrap">
+            <label>From Version</label>
+            <select id="diff-v1" class="diff-select"></select>
+          </div>
+          <div class="diff-arrow">→</div>
+          <div class="diff-select-wrap">
+            <label>To Version</label>
+            <select id="diff-v2" class="diff-select"></select>
+          </div>
+          <button class="btn-primary" onclick="runDiff()">Compare</button>
+        </div>
+        <div id="diff-result" class="diff-result"></div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- NOTIFICATIONS PANEL -->
+  <section class="notifications-panel hidden" id="notifications-panel">
+    <div class="panel-head">
+      <h2>Notification Log</h2>
+      <button class="btn-refresh" onclick="loadNotifications()">↻ Refresh</button>
+    </div>
+    <div id="notif-list" class="notif-list"></div>
+  </section>
+
+</main>
+
+<!-- ── MODAL: New Document ─────────────────────── -->
+<div class="modal-backdrop hidden" id="modal-new">
+  <div class="modal">
+    <div class="modal-header">
+      <h3>New Legal Document</h3>
+      <button class="modal-close" onclick="closeModal('modal-new')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>Document Title</label>
+      <input id="new-title" class="form-input" placeholder="e.g. Non-Disclosure Agreement — Acme Corp"/>
+    </div>
+    <div class="form-group">
+      <label>Content</label>
+      <textarea id="new-content" class="legal-textarea short" placeholder="Paste or type the document text…"></textarea>
+    </div>
+    <div class="form-group">
+      <label>Change Summary</label>
+      <input id="new-summary" class="form-input" placeholder="Initial draft"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-new')">Cancel</button>
+      <button class="btn-primary" onclick="createDocument()">Create Document</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Edit Title ───────────────────────── -->
+<div class="modal-backdrop hidden" id="modal-edit-title">
+  <div class="modal small">
+    <div class="modal-header">
+      <h3>Update Title</h3>
+      <button class="modal-close" onclick="closeModal('modal-edit-title')">✕</button>
+    </div>
+    <div class="form-group">
+      <label>New Title <span class="label-hint">— no new version is created</span></label>
+      <input id="new-title-input" class="form-input" placeholder="Document title…"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-edit-title')">Cancel</button>
+      <button class="btn-primary" onclick="saveTitle()">Update Title</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL: Version Viewer ───────────────────── -->
+<div class="modal-backdrop hidden" id="modal-version">
+  <div class="modal large">
+    <div class="modal-header">
+      <h3 id="modal-version-title">Version</h3>
+      <button class="modal-close" onclick="closeModal('modal-version')">✕</button>
+    </div>
+    <div id="modal-version-body" class="version-body"></div>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal('modal-version')">Close</button>
+      <button class="btn-danger-outline" id="modal-version-delete-btn">Delete This Version</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast ───────────────────────────────────── -->
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/js/app.js"></script>
+</body>
+</html>
